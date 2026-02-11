@@ -9,7 +9,7 @@ All sample datasets are based on the official **NASDAQ Historical TotalView-ITCH
 
 ## 🚀 Overview
 
-`c-lob-engine` is a low-level market data replay engine designed to:
+`market-microstructure-c` is a low-level market data replay engine designed to:
 
 * Process historical NASDAQ ITCH order flow
 * Reconstruct a full depth limit order book
