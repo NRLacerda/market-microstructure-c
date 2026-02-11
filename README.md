@@ -1,10 +1,4 @@
-Perfect — since this is based on **NASDAQ TotalView-ITCH (via LOBSTER)** and you're aiming for a more serious angle, here is a **performance / HFT / research / recruiter-optimized README**.
-
-This version positions the project as a **systems + market microstructure + performance engineering** exercise.
-
----
-
-# c-lob-engine
+# market-microstructure-c
 
 High-performance Limit Order Book reconstruction engine written in C.
 Replays NASDAQ TotalView-ITCH (via LOBSTER) historical message data to deterministically rebuild full market depth.
