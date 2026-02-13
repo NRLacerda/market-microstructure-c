@@ -53,10 +53,10 @@ void ht_remove(HashTable *ht, int order_id){
 
 void ht_destroy(HashTable *ht){
     void ht_destroy(HashTable *ht) {
-    for (int i = 0; i < ht->size; i++) {
+    for (int i = 0; i < ht->size; i++) { // we need to iterate through all the buckets to free the orders
         Order *current = ht->buckets[i];
 
-        while (current) {
+        while (current) { // then iterate through all items of the list to free them
             Order *next = current->hash_next;
             free(current);
             current = next;
