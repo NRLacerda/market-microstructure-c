@@ -1,9 +1,4 @@
-
-typedef struct 
-
-int main(int argc, char *argv[]){
  /* 
-
  The Book has two sides, ASK (sell) and BID (buy), that's specified on the direction that can be 1 for BID and -1 for ASK.
 
  Beyond the direction we also have the type of it, that can be:
@@ -15,23 +10,30 @@ int main(int argc, char *argv[]){
     5	Execution (hidden)
 
  We must create two structures:
- - Hash Table
- - Linked List
+ 1 Hash Table
+ 2 Linked List
 
- The hashtable will be used to store the orders by ID, so we can get an O(1) lookup when we have an event of type 
- Cancelled / Executed / 
+ 1 - The hashtable will be used to store the orders by ID, so we can get an O(1) lookup
+ 
+ 2 - The linked list will be used to store the orders by price level, each level will have the total amount of orders and a pointer to the next 
+ level, so we can iterate through the levels to get the best bid and ask, the linked list is an O(n) lookup.
 
- we must create the hash table before we can use it
- so we can store the orders with their ids, so when we get the cancelled event we just do an O(1) lookup to find the order
- and remove it.
+ In the case of full execution/deletion we would need to remove it 
+ 
+ This must be done in an exact order:
 
- in the case of full execution we would need to remove it from the PriceLevel as well, for doing so we get the price, find the level it is
- and remove the amount from the total then we must iterate through the orders in that level to find the order, match the OrderId and then remove it from the queue
+ 1) Remove from price level 
+ 2) Remove from hash table
+ 3) free(order)
 
- theres some conditions here, if the order was fully executed we must change the "next" pointer of the previous order to the "next" of the current node
- if that was the only node of the PriceLevel, we must remove the price level from the book
+ 1 - WIth the orderId in hands, find it at the hash table, get the price of it, with the price iterate through the price level to find the order, 
+ remove it changing the "next" pointer of the previous order to the next of the current node.
 
- with that, each event will be processed and change how the orderbook (log) looks like, each message creates an new snapshot of the orderbook, with:
+ 2 - WIth the orderId again, take the pointer of it, remove it from the hash table
+
+ 3 - With the pointer from the previous step now do an free(order) to release the memory
+
+ With each message-event processed it will change how the orderbook (log) looks like, each message creates an new snapshot of the orderbook, with:
   	    1.) Ask Price 1: 	Level 1 Ask Price 	(Best Ask)
 	    2.) Ask Size 1: 	Level 1 Ask Volume 	(Best Ask Volume)
 	    3.) Bid Price 1: 	Level 1 Bid Price 	(Best Bid)
@@ -41,5 +43,6 @@ int main(int argc, char *argv[]){
 
  */
 
-
+int main(int argc, char *argv[]){
+    return 0;
 }
