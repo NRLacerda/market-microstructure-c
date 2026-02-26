@@ -33,7 +33,7 @@
 
  3 - With the pointer from the previous step now do an free(order) to release the memory
 
- With each message-event processed it will change how the orderbook (log) looks like, each message creates an new snapshot of the orderbook, with:
+ With each message-event processed it will change how the orderbook looks like, each message creates an new snapshot of the orderbook, with:
   	    1.) Ask Price 1: 	Level 1 Ask Price 	(Best Ask)
 	    2.) Ask Size 1: 	Level 1 Ask Volume 	(Best Ask Volume)
 	    3.) Bid Price 1: 	Level 1 Bid Price 	(Best Bid)
@@ -41,8 +41,18 @@
 	    5.) Ask Price 2: 	Level 2 Ask Price 	(2nd Best Ask)
 
 
+        Message → OrderBook allocates Order
+        → Insert into structures
+        → Later cancel/match
+        → OrderBook frees Order
+
+
+    
+
  */
 
 int main(int argc, char *argv[]){
+    
+
     return 0;
 }

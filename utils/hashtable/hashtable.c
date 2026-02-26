@@ -1,12 +1,8 @@
 #define DEFAULT_HASH_SIZE 262144  // 2^18 a power of two so we can use bitwise comparations to generate the index
 
 #include "hashtable.h"
-
-typedef struct Order {
-    long order_id;
-    struct Order *next;
-    struct Order *prev;
-} Order; 
+#include <stdlib.h>  
+#include "../order/order.h"
 
 /* 
    our HashTable is basically an array of pointers to the head of a linked list of orders, 
@@ -14,50 +10,73 @@ typedef struct Order {
    this will have in general O(1) lookup time and O(n) in the worst cases, this way we don't have literal collisions and waste of memory
 */
 
-HashTable* ht_create() {
+HashTable* ht_create(int size) {
     HashTable *ht = malloc(sizeof(HashTable));
-    ht->size = DEFAULT_HASH_SIZE;
-    ht->buckets = calloc(DEFAULT_HASH_SIZE, sizeof(Order*));
+    ht->size = size;
+    ht->buckets = calloc(size, sizeof(HashNode*));
     return ht;
 }
 
-void ht_insert(HashTable *ht, int order_id, Order *order) {
-    int index = order_id & (ht->size - 1);
-    ht->buckets[index] = order;
+void ht_insert(HashTable *ht, long key, void *value) {
+    int index = key & (ht->size - 1);
+
+    HashNode *node = malloc(sizeof(HashNode));
+    node->key = key;
+    node->value = value;
+
+    // in practice the adding is O(1), putting the new item as the previous of the actual head
+    node->next = ht->buckets[index];
+    ht->buckets[index] = node;
 }
 
-void ht_remove(HashTable *ht, int order_id){
-    int index = order_id & (ht-> size -1);
-    Order *order = ht->buckets[index]; // returns the head of the list of orders
+void* ht_get(HashTable *ht, long key) {
+    int index = key & (ht->size - 1);
 
-    while(order && order->order_id != order_id){
-        order = order->next;
-    }
-    
-    if(!order) return;
+    HashNode *current = ht->buckets[index];
 
-    if(order->prev){
-        order->prev->next = order->next; // change the previous pointer to skip current node, so its deleted from the list
-    }
-    else{
-        ht->buckets[index] = order->next; // in case we dont have an previous
+    while (current) {
+        if (current->key == key)
+            return current->value;
+
+        current = current->next;
     }
 
-    if(order->next)
-    {
-        order->next->prev = order->prev; // change the next pointer to skip current node, so its deleted from the list
-    }   
-
-    free(order);
+    return NULL;
 }
 
-void ht_destroy(HashTable *ht){
-    void ht_destroy(HashTable *ht) {
-    for (int i = 0; i < ht->size; i++) { // we need to iterate through all the buckets to free the orders
-        Order *current = ht->buckets[i];
+void* ht_remove(HashTable *ht, long key) {
+    int index = key & (ht->size - 1);
 
-        while (current) { // then iterate through all items of the list to free them
-            Order *next = current->hash_next;
+    HashNode *current = ht->buckets[index];
+    HashNode *prev = NULL;
+
+    while (current) {
+        if (current->key == key) {
+
+            if (prev)
+                prev->next = current->next;
+            else
+                ht->buckets[index] = current->next;
+
+            void *value = current->value;
+            free(current);  // free node only
+
+            return value;   // return stored pointer
+        }
+
+        prev = current;
+        current = current->next;
+    }
+
+    return NULL;
+}
+
+void ht_destroy(HashTable *ht) {
+    for (int i = 0; i < ht->size; i++) {
+        HashNode *current = ht->buckets[i];
+
+        while (current) {
+            HashNode *next = current->next;
             free(current);
             current = next;
         }

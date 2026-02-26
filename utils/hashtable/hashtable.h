@@ -1,18 +1,24 @@
 #ifndef HASHTABLE_H
 #define HASHTABLE_H
-
-
-typedef struct Order Order;
+typedef struct HashNode {
+    long key;
+    void *value;
+    struct HashNode *next;
+} HashNode;
 
 typedef struct HashTable {
-    Order **buckets;
+    HashNode **buckets;
     int size;
 } HashTable;
 
-HashTable* ht_create();
-void ht_insert(HashTable *ht, int order_id, Order *order);
-void ht_remove(HashTable *ht, int order_id);
-Order* ht_get(HashTable *ht, int order_id);
+HashTable* ht_create(int size);
+
+void ht_insert(HashTable *ht, long key, void *value);
+
+void* ht_get(HashTable *ht, long key);
+
+void* ht_remove(HashTable *ht, long key);
+
 void ht_destroy(HashTable *ht);
 
 
