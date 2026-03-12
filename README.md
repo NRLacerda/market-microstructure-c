@@ -1,33 +1,27 @@
-# market-microstructure-c
+# Market Microstructure Engine in C
 
-High-performance Limit Order Book reconstruction engine written in C.
+High-performance Limit Order Book (LOB) reconstruction engine written in **C**.
 Replays NASDAQ TotalView-ITCH (via LOBSTER) historical message data to deterministically rebuild full market depth.
 
-All sample datasets are based on the official **NASDAQ Historical TotalView-ITCH sample**, using Amazon (AMZN) as demonstration data.
+This project demonstrates **efficient order book reconstruction** with a focus on speed, memory predictability, and price-time priority.
 
 ---
 
 ## 🚀 Overview
 
-`market-microstructure-c` is a low-level market data replay engine designed to:
+`market-microstructure-c` is a low-level engine designed to:
 
-* Process historical NASDAQ ITCH order flow
-* Reconstruct a full depth limit order book
-* Preserve strict price-time priority
-* Operate with predictable memory behavior
-* Emphasize cache-friendly and performance-aware design
+* Replay historical NASDAQ ITCH order flow
+* Reconstruct full depth **limit order books**
+* Maintain strict **price-time priority**
+* Operate with **predictable memory usage**
+* Maximize **performance**, achieving hundreds of thousands of events per second
 
-The project focuses on systems programming and market microstructure modeling.
+The engine is **fully deterministic**, ideal for backtesting, research, and educational purposes in market microstructure.
 
 ---
 
 ## 📈 Data Source
-
-* NASDAQ TotalView-ITCH sample data
-* Processed via LOBSTER format
-* Demo dataset: **Amazon (AMZN)**
-
-Two input files:
 
 ### Message File (Event Stream)
 
@@ -39,30 +33,34 @@ Represents the atomic market events:
 * Visible executions
 * Hidden executions
 
-This is the **source of truth**.
+The message file is the **source of truth** for book reconstruction.
 
-### Orderbook File (Reference State)
+### Orderbook Reference File
 
-Represents the expected book state after each event.
-Used for deterministic validation.
+Contains expected book states for validation:
+
+* After each event
+* Used to check deterministic reconstruction
+
+Demo dataset: **Amazon (AMZN)**
 
 ---
 
 ## 🏗 Engine Architecture
 
-### Core Design Principles
+### Core Principles
 
 * Deterministic replay
-* O(1) average order lookup
+* O(1) order lookup
 * Strict FIFO within price levels
-* Minimal dynamic allocations during replay
-* Clear separation between data model and event processor
+* Minimal dynamic allocations inside hot loop
+* Clear separation between **data model** and **event processor**
 
 ---
 
-## 🔧 Core Components
+### 🔧 Components
 
-### 1️⃣ Order Registry (Hash Table)
+#### 1️⃣ Order Registry (Hash Table)
 
 Maps:
 
@@ -70,159 +68,110 @@ Maps:
 OrderID → Order*
 ```
 
-Used for:
+Purpose:
 
-* Fast cancellation
-* Fast execution lookup
-* Size updates
+* Fast cancellation & execution
+* Constant-time lookup
+* Cache-friendly memory layout
 
-Implemented from scratch to control:
+#### 2️⃣ Price Levels
 
-* Collision resolution strategy
-* Memory layout
-* Cache locality
+Each price level maintains:
 
----
+* Total aggregated volume
+* FIFO queue of orders (strict price-time priority)
+* Bid side → descending prices
+* Ask side → ascending prices
 
-### 2️⃣ Price Levels
+#### 3️⃣ Order Pool
 
-Each price level contains:
+* Orders preallocated in a **memory pool**
+* Avoids repeated malloc/free during replay
+* Reduces fragmentation
+* Improves throughput
 
-* Aggregated volume
-* FIFO queue of orders
+#### 4️⃣ Event Processor
 
-Structure:
-
-```
-Bid Side  → descending price priority
-Ask Side  → ascending price priority
-```
-
-Price-time priority is preserved via queue ordering.
-
----
-
-### 3️⃣ FIFO Queue (Per Price Level)
-
-Maintains strict execution ordering.
-
-Properties:
-
-* O(1) insertion
-* O(1) removal from head
-* Linked list or intrusive node design
-
----
-
-### 4️⃣ Order Book Core
-
-Contains:
-
-* Bid structure
-* Ask structure
-* Order registry
-* Event processor
+* Reads event stream line-by-line
+* Updates orders and price levels
+* Matches incoming orders immediately
+* Supports **fast replay loop**
 
 ---
 
 ## 🧠 Memory Strategy
 
-### Stack
+* **Stack**: Local parsing buffers, small structs
+* **Heap**: Preallocated order pool, hash table buckets, price level queues
 
-Used for:
-
-* Small local structs
-* Temporary parsing buffers
-* Fixed-size control structures
-
-Reason:
-
-* Fast allocation
-* Automatic cleanup
-* No fragmentation
+All critical structures are designed for **cache-friendly access**.
 
 ---
 
-### Heap
+## ⚡ Performance
 
-Used for:
+* Sequential file processing → cache-friendly
+* Preallocated memory → no hot-loop malloc
+* Integer prices → avoids floating point operations
+* Minimal print/logging → can reach **over 1 million events/sec**
 
-* Orders
-* Hash table buckets
-* Price level queues
+### Example Performance on AMZN Dataset
 
-Reason:
+```
+Processed: 57,515 events
+Replay time: 0.05 seconds
+Throughput: 1.173.775 events/sec 
+```
 
-* Dynamic growth
-* Large dataset handling
-* Explicit lifetime control
-
----
-
-## ⚡ Performance Considerations
-
-* Sequential file processing (cache friendly)
-* Avoid unnecessary malloc/free inside hot loop
-* Preallocate hash table capacity
-* Use integer prices (no floating point)
-* Struct packing awareness
-* Predictable memory layout
-
-Potential optimizations:
-
-* Custom memory pool allocator
-* Arena allocator
-* Lock-free structures (for future real-time variant)
-* SIMD parsing
-* Binary ITCH parser
+Adding per-event logs drastically reduces throughput (~441 events/sec).
 
 ---
 
 ## 📊 Complexity
 
-| Operation              | Expected Complexity |
-| ---------------------- | ------------------- |
-| Order insertion        | O(1)                |
-| Order cancellation     | O(1)                |
-| Execution update       | O(1)                |
-| Best bid/ask retrieval | O(1)                |
+| Operation              | Complexity |
+| ---------------------- | ---------- |
+| Order insertion        | O(1)       |
+| Order cancellation     | O(1)       |
+| Execution update       | O(1)       |
+| Best bid/ask retrieval | O(1)       |
+| Event processing       | O(1)       |
 
-Replay is strictly linear in number of events:
+Total replay is **O(N)** in number of events.
 
+---
+
+## 🧪 Usage
+
+```c
+#include "engine/engine.h"
+
+int main() {
+    FILE *file = fopen("res/AMZN_2012-06-21.csv", "r");
+    if (!file) return 1;
+
+    Engine *engine = engine_create(100000);
+
+    engine_run(engine, file);
+
+    engine_destroy(engine);
+    fclose(file);
+
+    return 0;
+}
 ```
-O(N)
-```
+
+* Build with GCC/Make
+* Supports preallocated memory pools for orders
+* Minimal external dependencies
 
 ---
 
-## 🧪 Validation
+## 🔮 Future Improvements
 
-The engine validates reconstructed states against:
-
-LOBSTER orderbook reference file
-
-Ensures deterministic correctness.
-
----
-
-## 📚 Market Microstructure Concepts
-
-* Limit order book mechanics
-* Price-time priority
-* Order flow replay
-* Visible vs hidden liquidity
-* ITCH protocol semantics
-
----
-
-## 🔮 Future Extensions
-
-* Native ITCH binary parser
+* Native binary ITCH parser
 * Real-time feed handler
-* Matching engine simulation
-* Latency benchmarking
-* Profiling with perf / valgrind
 * Multi-asset support
-* Persistent memory allocator
-
----
+* Profiling & latency measurement
+* SIMD parsing optimizations
+* Lock-free or multi-threaded version
