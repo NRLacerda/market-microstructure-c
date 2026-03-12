@@ -215,46 +215,6 @@ void ob_print_book(OrderBook *book)
 {
     printf("\n============= ORDER BOOK =============\n");
 
-    printf("\n------------- ASKS -------------------\n");
-
-    for (int i = 0; i < book->ask_levels->size; i++)
-    {
-        HashNode *node = book->ask_levels->buckets[i];
-
-        while (node != NULL)
-        {
-            PriceLevel *level = (PriceLevel*) node->value;
-
-            printf(
-                "ASK price=%d volume=%ld\n",
-                level->price,
-                level->total_volume
-            );
-
-            node = node->next;
-        }
-    }
-
-    printf("\n------------- BIDS -------------------\n");
-
-    for (int i = 0; i < book->bid_levels->size; i++)
-    {
-        HashNode *node = book->bid_levels->buckets[i];
-
-        while (node != NULL)
-        {
-            PriceLevel *level = (PriceLevel*) node->value;
-
-            printf(
-                "BID price=%d volume=%ld\n",
-                level->price,
-                level->total_volume
-            );
-
-            node = node->next;
-        }
-    }
-
     if (book->best_bid)
         printf("\nBest Bid: %d (%ld)\n",
                book->best_bid->price,
