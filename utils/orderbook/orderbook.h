@@ -2,9 +2,9 @@
 #define ORDERBOOK_H
 
 #include <stddef.h>
-#include "order/order.h"
 #include "pricelevel/pricelevel.h"
 #include "hashtable/hashtable.h"
+#include "order/order.h"
 
 typedef enum {
     TRADING_HALTED = 0,
@@ -20,8 +20,8 @@ typedef struct OrderBook {
     HashTable *bid_levels;     
     HashTable *ask_levels;     
 
-    int best_bid;
-    int best_ask;
+    PriceLevel best_bid;
+    PriceLevel best_ask;
 
     TradingState state;
 } OrderBook;

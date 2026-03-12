@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "pricelevel.h"
+#include "order/order.h"
 
 PriceLevel* pl_create(int price)
 {

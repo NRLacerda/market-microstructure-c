@@ -51,8 +51,28 @@
 
  */
 
-int main(int argc, char *argv[]){
-    
+#include <stdio.h>
+#include "engine.h"
+
+int main() {
+
+    FILE *file = fopen(
+        "res/AMZN_2012-06-21_34200000_57600000_message_1.csv",
+        "r"
+    );
+
+    if (!file) {
+        printf("Failed to open file\n");
+        return 1;
+    }
+
+    Engine *engine = engine_create(100000);
+
+    engine_run(engine, file);
+
+    engine_destroy(engine);
+
+    fclose(file);
 
     return 0;
 }

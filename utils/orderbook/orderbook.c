@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include "orderbook.h"
+#include "order/order.h"
 
 OrderBook* ob_create(int hash_size)
 {
@@ -60,7 +61,6 @@ int ob_add_order(OrderBook *book,
     if (book->state != TRADING)
         return -1;
 
-    /* Allocate Order */
     Order *order = malloc(sizeof(Order));
     if (!order) return -1;
 
@@ -70,33 +70,32 @@ int ob_add_order(OrderBook *book,
     order->side = side;
     order->next = NULL;
     order->prev = NULL;
+    order->level = NULL;
 
-    /* Insert into order lookup table */
     ht_insert(book->order_table, order_id, order);
 
-    /* Get correct price level table */
     HashTable *levels = (side == 0)
                         ? book->bid_levels
                         : book->ask_levels;
 
-    /* Find or create price level */
-    PriceLevel *level = ht_get(levels, price);
+    PriceLevel *level = ht_get(levels, price); // i forgot we put the pricelevels as an hashtable xd
 
     if (!level) {
         level = pl_create(price);
         ht_insert(levels, price, level);
     }
 
-    /* Add order to FIFO */
     pl_add_order(level, order);
 
-    /* Update best prices */
-    if (side == 0) {  // BID
-        if (price > book->best_bid)
-            book->best_bid = price;
-    } else {          // ASK
-        if (price < book->best_ask)
-            book->best_ask = price;
+    order->level = level;
+
+    /* Update best pointers */
+    if (side == 0) { // BID
+        if (!book->best_bid || price > book->best_bid->price)
+            book->best_bid = level;
+    } else { // ASK
+        if (!book->best_ask || price < book->best_ask->price)
+            book->best_ask = level;
     }
 
     return 0;
@@ -107,33 +106,33 @@ int ob_cancel_order(OrderBook *book, long order_id)
     Order *order = ht_remove(book->order_table, order_id);
     if (!order) return -1;
 
-    HashTable *levels = (order->side == 0)
-                        ? book->bid_levels
-                        : book->ask_levels;
-
-    PriceLevel *level = ht_get(levels, order->price);
+    PriceLevel *level = order->level;
     if (!level) return -1;
 
     pl_remove_order(level, order);
 
-    /* If price level empty → remove it */
+    level->total_volume -= order->quantity;
+
     if (level->head == NULL) {
 
-        ht_remove(levels, order->price);
-        pl_destroy(level);
+        HashTable *levels = (order->side == 0)
+                            ? book->bid_levels
+                            : book->ask_levels;
 
-        /* best price might need recalculation */
-        // For now naive reset
-        if (order->side == 0)
-            book->best_bid = 0;
-        else
-            book->best_ask = INT_MAX;
+        ht_remove(levels, level->price);
+
+        if (book->best_bid == level)
+            book->best_bid = NULL;
+
+        if (book->best_ask == level)
+            book->best_ask = NULL;
+
+        pl_destroy(level);
     }
 
     free(order);
     return 0;
 }
-
 void ob_set_state(OrderBook *book, TradingState state)
 {
     book->state = state;
