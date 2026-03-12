@@ -6,20 +6,32 @@
 
 int engine_read_event(FILE *file, Event *event)
 {
-    int fields = fscanf(
-        file,
-        "%lf,%d,%ld,%d,%d,%d",
-        &event->timestamp,
-        (int*)&event->type,
-        &event->order_id,
-        &event->quantity,
-        &event->price,
-        (int*)&event->side
-    );
+    char line[128];
 
-    return fields == 6;
+    if (!fgets(line, sizeof(line), file))
+        return 0;
+
+    char *p = line;
+
+    event->timestamp = strtod(p, &p);
+    if (*p == ',') p++;
+
+    event->type = (int)strtol(p, &p, 10);
+    if (*p == ',') p++;
+
+    event->order_id = strtol(p, &p, 10);
+    if (*p == ',') p++;
+
+    event->quantity = (int)strtol(p, &p, 10);
+    if (*p == ',') p++;
+
+    event->price = (int)strtol(p, &p, 10);
+    if (*p == ',') p++;
+
+    event->side = (int)strtol(p, &p, 10);
+
+    return 1;
 }
-
 
 long engine_run(Engine *engine, FILE *input) 
 {
