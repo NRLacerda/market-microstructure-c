@@ -13,12 +13,11 @@ typedef enum {
 } TradingState;
 
 typedef struct OrderBook {
-    HashTable *order_table;    
 
-    // disclaimer, the best thing here would be to have only one tree structure for both sides and to handle level exclusion in O(1)
-    // but for simplicity we are going this way in the moment, we will optimize it later
-    HashTable *bid_levels;     
-    HashTable *ask_levels;     
+    HashTable *order_table;
+
+    HashTable *bid_levels;
+    HashTable *ask_levels;
 
     PriceLevel *best_bid;
     PriceLevel *best_ask;
@@ -28,6 +27,7 @@ typedef struct OrderBook {
     Order *order_pool;
     size_t pool_size;
     size_t pool_index;
+
 } OrderBook;
 
 OrderBook* ob_create(int hash_size);
@@ -46,5 +46,6 @@ PriceLevel* ob_get_best_ask(OrderBook *book);
 void ob_match_asks(OrderBook *book, Order *incoming);
 void ob_match_bids(OrderBook *book, Order *incoming);
 void ob_print_book(OrderBook *book);
+
 
 #endif
