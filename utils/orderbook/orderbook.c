@@ -56,7 +56,7 @@ int ob_add_order(OrderBook *book,
                  long order_id,
                  int price,
                  int quantity,
-                 int side)
+                 OrderSide side)
 {
     if (book->state != TRADING)
         return -1;
@@ -68,34 +68,25 @@ int ob_add_order(OrderBook *book,
     order->price = price;
     order->quantity = quantity;
     order->side = side;
+
     order->next = NULL;
     order->prev = NULL;
+    order->hash_next = NULL;
     order->level = NULL;
 
-    ht_insert(book->order_table, order_id, order);
+    /* Try matching first */
+    if (side == SIDE_BID)
+        ob_match_asks(book, order);
+    else
+        ob_match_bids(book, order);
 
-    HashTable *levels = (side == 0)
-                        ? book->bid_levels
-                        : book->ask_levels;
+    if (order->quantity > 0) {
+        ht_insert(book->order_table, order_id, order);
 
-    PriceLevel *level = ht_get(levels, price); // i forgot we put the pricelevels as an hashtable xd
+        ob_insert_order(book, order);
 
-    if (!level) {
-        level = pl_create(price);
-        ht_insert(levels, price, level);
-    }
-
-    pl_add_order(level, order);
-
-    order->level = level;
-
-    /* Update best pointers */
-    if (side == 0) { // BID
-        if (!book->best_bid || price > book->best_bid->price)
-            book->best_bid = level;
-    } else { // ASK
-        if (!book->best_ask || price < book->best_ask->price)
-            book->best_ask = level;
+    } else {
+        free(order);
     }
 
     return 0;
@@ -146,4 +137,80 @@ int ob_get_best_bid(OrderBook *book)
 int ob_get_best_ask(OrderBook *book)
 {
     return book->best_ask;
+}
+
+void ob_match_asks(OrderBook *book, Order *incoming)
+{
+    while (incoming->quantity > 0 && book->best_ask) {
+
+        PriceLevel *level = book->best_ask;
+
+        if (incoming->price < level->price)
+            break;
+
+        Order *resting = level->head;
+
+        int traded = MIN(incoming->quantity, resting->quantity);
+
+        incoming->quantity -= traded;
+        resting->quantity -= traded;
+        level->total_volume -= traded;
+
+        if (resting->quantity == 0) {
+
+            pl_remove_order(level, resting);
+
+            ht_remove(book->order_table, resting->order_id);
+
+            free(resting);
+        }
+
+        if (level->head == NULL) {
+
+            ht_remove(book->ask_levels, level->price);
+
+            if (book->best_ask == level)
+                book->best_ask = NULL;
+
+            pl_destroy(level);
+        }
+    }
+}
+
+void ob_match_bids(OrderBook *book, Order *incoming)
+{
+    while (incoming->quantity > 0 && book->best_bid) {
+
+        PriceLevel *level = book->best_bid;
+
+        if (incoming->price > level->price)
+            break;
+
+        Order *resting = level->head;
+
+        int traded = MIN(incoming->quantity, resting->quantity);
+
+        incoming->quantity -= traded;
+        resting->quantity -= traded;
+        level->total_volume -= traded;
+
+        if (resting->quantity == 0) {
+
+            pl_remove_order(level, resting);
+
+            ht_remove(book->order_table, resting->order_id);
+
+            free(resting);
+        }
+
+        if (level->head == NULL) {
+
+            ht_remove(book->bid_levels, level->price);
+
+            if (book->best_bid == level)
+                book->best_bid = NULL;
+
+            pl_destroy(level);
+        }
+    }
 }

@@ -7,7 +7,7 @@ typedef struct Order {
     long order_id;
     int price;
     int quantity;
-    int side; // BID = 0, ASK = 1
+    OrderSide side;
 
     struct Order *next;
     struct Order *prev;
@@ -16,5 +16,10 @@ typedef struct Order {
 
     PriceLevel *level;
 };
+
+typedef enum {
+    SIDE_BID = 0,
+    SIDE_ASK = 1
+} OrderSide;
 
 #endif

@@ -39,5 +39,7 @@ PriceLevel* ob_get_price_level(OrderBook *book, int price, int side);
 void ob_set_state(OrderBook *book, TradingState state);
 int ob_get_best_bid(OrderBook *book);
 int ob_get_best_ask(OrderBook *book);
+void ob_match_asks(OrderBook *book, Order *incoming)
+void ob_match_bids(OrderBook *book, Order *incoming);
 
 #endif
