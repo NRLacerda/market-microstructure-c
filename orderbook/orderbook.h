@@ -24,6 +24,10 @@ typedef struct OrderBook {
     PriceLevel *best_ask;
 
     TradingState state;
+
+    Order *order_pool;
+    size_t pool_size;
+    size_t pool_index;
 } OrderBook;
 
 OrderBook* ob_create(int hash_size);
