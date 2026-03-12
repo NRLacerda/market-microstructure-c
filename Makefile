@@ -1,16 +1,29 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -g
+CFLAGS = -Wall -Wextra -g \
+         -Iengine \
+         -Ievent \
+         -Ihashtable \
+         -Iorder \
+         -Iorderbook \
+         -Ipricelevel
 
-SRC = main.c $(wildcard utils/*/*.c)
+TARGET = market_microstructure
+
+SRC = main.c \
+      engine/engine.c \
+      hashtable/hashtable.c \
+      orderbook/orderbook.c \
+      pricelevel/pricelevel.c
+
 OBJ = $(SRC:.c=.o)
 
-TARGET = engine
+all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CC) $(OBJ) -o $(TARGET)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ) $(TARGET) *.exe
+	rm -f $(OBJ) $(TARGET)
